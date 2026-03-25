@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบติดตามการโทรกลับ — ศูนย์ 191 ภ.จว.น่าน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #112240;
+    --navy-light: #1d3461;
+    --accent: #e8b14a;
+    --accent2: #4ad6e8;
+    --success: #43d982;
+    --danger: #ff4d6d;
+    --warn: #ffb347;
+    --text: #e8eaf0;
+    --text-dim: #8899b0;
+    --border: rgba(255,255,255,0.08);
+    --card: rgba(255,255,255,0.04);
+    --card-hover: rgba(255,255,255,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(74,214,232,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(232,177,74,0.05) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* === HEADER === */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,22,40,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-badge {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #c97d1a);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600; font-size: 14px; color: var(--navy);
+  }
+  .logo-text { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .logo-sub { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+  nav { display: flex; gap: 4px; }
+  nav button {
+    padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 500;
+    background: transparent; color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  nav button.active, nav button:hover {
+    background: var(--card-hover); color: var(--text);
+  }
+  nav button.active { color: var(--accent); }
+  .user-chip {
+    font-size: 13px; color: var(--accent2);
+    background: rgba(74,214,232,0.08);
+    border: 1px solid rgba(74,214,232,0.2);
+    padding: 5px 12px; border-radius: 8px;
+    font-weight: 600;
+  }
+  .btn-logout {
+    padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(255,77,109,0.3);
+    background: rgba(255,77,109,0.08); color: var(--danger);
+    font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-logout:hover { background: rgba(255,77,109,0.18); }
+  .date-badge {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    color: var(--text-dim); background: var(--card);
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+  }
+
+  /* === MAIN === */
+  main { position: relative; z-index: 1; }
+  .view { display: none; padding: 2rem; max-width: 1400px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* === FORM VIEW === */
+  .form-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  .page-title { font-size: 22px; font-weight: 700; }
+  .page-title span { color: var(--accent); }
+  .incident-id {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--card); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; color: var(--accent2);
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .form-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .form-card:hover { border-color: rgba(255,255,255,0.15); }
+  .form-card.full { grid-column: 1 / -1; }
+  .section-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #c97d1a);
+    color: var(--navy); font-weight: 700; font-size: 13px;
+    margin-right: 10px; flex-shrink: 0;
+  }
+  .section-title {
+    display: flex; align-items: center;
+    font-size: 15px; font-weight: 600;
+    margin-bottom: 1.2rem; padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
+  .radio-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.02); border: 1px solid transparent;
+    cursor: pointer; transition: all 0.15s; font-size: 14px;
+  }
+  .radio-item:hover { background: var(--card-hover); border-color: var(--border); }
+  .radio-item input[type="radio"] { display: none; }
+  .radio-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--text-dim); flex-shrink: 0;
+    transition: all 0.15s; position: relative;
+  }
+  .radio-item.selected { background: rgba(232,177,74,0.08); border-color: rgba(232,177,74,0.3); }
+  .radio-item.selected .radio-dot {
+    border-color: var(--accent); background: var(--accent);
+    box-shadow: 0 0 8px rgba(232,177,74,0.4);
+  }
+  .radio-item.selected .radio-dot::after {
+    content: ''; position: absolute; inset: 3px;
+    background: var(--navy); border-radius: 50%;
+  }
+
+  .sub-items { padding-left: 1rem; margin-top: 4px; }
+  .sub-label { font-size: 12px; color: var(--text-dim); margin: 6px 0 4px; }
+
+  .form-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .form-field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .form-field label { font-size: 13px; color: var(--text-dim); }
+  .form-field input, .form-field select, .form-field textarea {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 10px 14px;
+    font-family: 'Sarabun', sans-serif; font-size: 14px;
+    transition: border-color 0.2s; outline: none;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    border-color: rgba(232,177,74,0.4);
+    background: rgba(232,177,74,0.04);
+  }
+  .form-field select option { background: var(--navy-mid); }
+  .form-field textarea { resize: vertical; min-height: 80px; }
+
+  .submit-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 1.5rem; }
+  .btn {
+    padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #c97d1a);
+    color: var(--navy);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(232,177,74,0.3); }
+  .btn-ghost {
+    background: var(--card); color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); background: var(--card-hover); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+    background: var(--success); color: var(--navy);
+    padding: 14px 22px; border-radius: 12px;
+    font-weight: 600; font-size: 15px;
+    transform: translateY(100px); opacity: 0;
+    transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 8px 24px rgba(67,217,130,0.3);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* === DASHBOARD VIEW === */
+  .dash-header { margin-bottom: 2rem; display:flex; align-items:center; justify-content:space-between; }
+  .dash-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .dash-sub { font-size: 14px; color: var(--text-dim); }
+  .btn-print {
+    background: linear-gradient(135deg, var(--accent2), #1976d2);
+    color: var(--navy); font-weight: 600;
+  }
+  .btn-print:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(74,214,232,0.3); }
+
+  /* Print styles */
+  @media print {
+    body { background: #fff !important; color: #000 !important; }
+    header, nav, .btn, .btn-print, .btn-ghost { display: none !important; }
+    .view { display: block !important; padding: 0 !important; }
+    #view-form { display: none !important; }
+    #view-dashboard { display: block !important; }
+    .stat-card, .chart-card { 
+      background: #fff !important; border: 1px solid #ccc !important;
+      break-inside: avoid; color: #000 !important;
+    }
+    .stat-value { color: #000 !important; }
+    .stat-label, .stat-trend, .chart-title, .dash-sub { color: #444 !important; }
+    .bar-label, .bar-val { color: #333 !important; }
+    .bar-track { background: #eee !important; }
+    .records-table th, .records-table td { color: #000 !important; border-color: #ccc !important; }
+    .dash-header { margin-bottom: 1rem; }
+    .stats-row { grid-template-columns: repeat(4,1fr) !important; }
+    .charts-grid { grid-template-columns: 1fr 1fr !important; }
+    .print-title {
+      display: block !important;
+      text-align: center; font-size: 18px; font-weight: 700;
+      margin-bottom: 4px; color: #000;
+    }
+    .print-date { display: block !important; text-align:center; font-size:13px; color:#555; margin-bottom:16px; }
+    body::before { display: none !important; }
+  }
+  .print-title, .print-date { display: none; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; margin-bottom: 1.5rem; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.4rem; position: relative; overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+  .stat-card.blue::before { background: linear-gradient(90deg, var(--accent2), #2196f3); }
+  .stat-card.gold::before { background: linear-gradient(90deg, var(--accent), #f57f17); }
+  .stat-card.green::before { background: linear-gradient(90deg, var(--success), #00bfa5); }
+  .stat-card.red::before { background: linear-gradient(90deg, var(--danger), #ff6e40); }
+  .stat-label { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 36px; font-weight: 600; line-height: 1; }
+  .stat-card.blue .stat-value { color: var(--accent2); }
+  .stat-card.gold .stat-value { color: var(--accent); }
+  .stat-card.green .stat-value { color: var(--success); }
+  .stat-card.red .stat-value { color: var(--danger); }
+  .stat-trend { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .chart-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem;
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 1.2rem; color: var(--text); }
+
+  /* Bar chart */
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-label { font-size: 12px; color: var(--text-dim); width: 180px; flex-shrink: 0; line-height: 1.3; }
+  .bar-track { flex: 1; height: 10px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .bar-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); width: 28px; text-align: right; }
+
+  /* Donut */
+  .donut-wrap { display: flex; align-items: center; gap: 2rem; }
+  .donut-svg { flex-shrink: 0; }
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .legend-pct { font-family: 'IBM Plex Mono', monospace; color: var(--text-dim); font-size: 12px; margin-left: auto; padding-left: 12px; }
+
+  /* Recent table */
+  .records-table { width: 100%; border-collapse: collapse; }
+  .records-table th {
+    font-size: 12px; color: var(--text-dim); font-weight: 500;
+    text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .records-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .records-table tr:last-child td { border-bottom: none; }
+  .records-table tr:hover td { background: var(--card-hover); }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600;
+  }
+  .badge-green { background: rgba(67,217,130,0.15); color: var(--success); }
+  .badge-red { background: rgba(255,77,109,0.15); color: var(--danger); }
+  .badge-yellow { background: rgba(232,177,74,0.15); color: var(--accent); }
+  .badge-blue { background: rgba(74,214,232,0.15); color: var(--accent2); }
+
+  .empty-state {
+    text-align: center; padding: 4rem 2rem; color: var(--text-dim);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-size: 15px; }
+
+  /* Responsive */
+  /* Period tabs */
+  .period-tabs {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
+  }
+  .period-tab-group {
+    display: flex; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; gap: 4px;
+  }
+  .ptab {
+    padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 500;
+    background: transparent; color: var(--text-dim); transition: all 0.2s;
+  }
+  .ptab:hover { color: var(--text); background: var(--card-hover); }
+  .ptab.active {
+    background: linear-gradient(135deg, var(--accent), #c97d1a);
+    color: var(--navy); font-weight: 700;
+    box-shadow: 0 2px 8px rgba(232,177,74,0.3);
+  }
+  .period-nav {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 6px 12px;
+  }
+  .period-nav.hidden { visibility: hidden; }
+  .pnav-btn {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    font-size: 20px; line-height: 1; padding: 0 4px; transition: color 0.15s;
+  }
+  .pnav-btn:hover { color: var(--accent); }
+  .pnav-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    color: var(--text); min-width: 140px; text-align: center;
+  }
+
+  /* Trend bars */
+  .trend-bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 4px; }
+  .trend-bar-outer { width: 100%; display: flex; align-items: flex-end; height: 80px; }
+  .trend-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px;
+    background: linear-gradient(180deg, var(--accent2), #1976d2);
+    transition: height 0.5s cubic-bezier(.4,0,.2,1); }
+  .trend-bar-label { font-size: 10px; color: var(--text-dim); text-align: center; line-height: 1.2; }
+  .trend-bar-val { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--accent2); }
+
+  @media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    nav button { padding: 8px 12px; font-size: 13px; }
+    .date-badge { display: none; }
+    .period-tabs { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* ===== LOGIN OVERLAY ===== */
+  #loginOverlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0a1628;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Sarabun', sans-serif;
+  }
+  #loginOverlay::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 15% 15%, rgba(74,214,232,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 85%, rgba(232,177,74,0.07) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  #loginOverlay::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(74,214,232,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,214,232,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    animation: gridMove 20s linear infinite;
+  }
+  @keyframes gridMove { 0% { transform: translateY(0); } 100% { transform: translateY(48px); } }
+  .lw { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 1.5rem; animation: fadeUp 0.5s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+  .l-logo { text-align: center; margin-bottom: 2rem; }
+  .l-badge {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, #e8b14a, #c97d1a);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 28px; color: #0a1628;
+    margin-bottom: 1rem;
+    box-shadow: 0 8px 32px rgba(232,177,74,0.35);
+    animation: lbpulse 3s ease-in-out infinite;
+  }
+  @keyframes lbpulse { 0%,100%{box-shadow:0 8px 32px rgba(232,177,74,0.35);}50%{box-shadow:0 8px 48px rgba(232,177,74,0.55);} }
+  .l-title { font-size: 20px; font-weight: 700; color: #e8eaf0; margin-bottom: 4px; }
+  .l-sub { font-size: 13px; color: #8899b0; }
+  .l-card {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 2rem;
+    backdrop-filter: blur(20px); box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  }
+  .l-field { margin-bottom: 1.2rem; }
+  .l-field label { display:block; font-size:13px; color:#8899b0; margin-bottom:8px; font-weight:500; }
+  .l-fw { position: relative; }
+  .l-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; pointer-events:none; color:#8899b0; }
+  .l-field input {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: #e8eaf0; border-radius: 12px; padding: 13px 14px 13px 42px;
+    font-family: 'Sarabun', sans-serif; font-size: 15px; outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .l-field input:focus { border-color: rgba(232,177,74,0.5); background: rgba(232,177,74,0.04); }
+  .l-field input::placeholder { color: #8899b0; }
+  .l-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#8899b0; font-size:16px; padding:4px; transition:color 0.2s; }
+  .l-eye:hover { color: #e8eaf0; }
+  .l-err {
+    background: rgba(255,77,109,0.12); border: 1px solid rgba(255,77,109,0.3);
+    border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #ff4d6d;
+    margin-bottom: 1.2rem; display: none; animation: lshake 0.3s ease;
+  }
+  .l-err.show { display: block; }
+  @keyframes lshake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
+  .l-btn {
+    width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: 700;
+    background: linear-gradient(135deg, #e8b14a, #c97d1a); color: #0a1628;
+    transition: all 0.2s; position: relative;
+  }
+  .l-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,177,74,0.4); }
+  .l-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+  .l-spinner { display:none; width:18px; height:18px; border:2px solid rgba(10,22,40,0.3); border-top-color:#0a1628; border-radius:50%; animation:lspin 0.6s linear infinite; margin:0 auto; }
+  .l-btn.loading .l-btext { display:none; }
+  .l-btn.loading .l-spinner { display:block; }
+  @keyframes lspin { to { transform:rotate(360deg); } }
+  .l-footer { text-align:center; margin-top:1.5rem; font-size:12px; color:#8899b0; line-height:1.8; }
+  .l-footer span { color: #4ad6e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-badge">191</div>
+    <div>
+      <div class="logo-text">ระบบติดตามการโทรกลับ</div>
+      <div class="logo-sub">ศูนย์วิทยุ ภ.จว.น่าน</div>
+    </div>
+  </div>
+  <nav>
+    <button class="active" onclick="switchView('form')">📋 บันทึกข้อมูล</button>
+    <button onclick="switchView('dashboard')">📊 แดชบอร์ด</button>
+  </nav>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="date-badge" id="liveClock">—</div>
+    <div class="user-chip" id="userChip">—</div>
+    <button class="btn-logout" onclick="doLogout()">ออกจากระบบ</button>
+  </div>
+</header>
+
+<main>
+
+<div id="loginOverlay">
+  <div class="lw">
+    <div class="l-logo">
+      <div class="l-badge">191</div>
+      <div class="l-title">ระบบติดตามการโทรกลับ</div>
+      <div class="l-sub">ศูนย์วิทยุ ภ.จว.น่าน — กรุณาเข้าสู่ระบบ</div>
+    </div>
+    <div class="l-card">
+      <div class="l-field">
+        <label>ชื่อผู้ใช้ (Username)</label>
+        <div class="l-fw">
+          <span class="l-icon">👤</span>
+          <input type="text" id="l_user" placeholder="กรอกชื่อผู้ใช้" autocomplete="username">
+        </div>
+      </div>
+      <div class="l-field">
+        <label>รหัสผ่าน (Password)</label>
+        <div class="l-fw">
+          <span class="l-icon">🔒</span>
+          <input type="password" id="l_pass" placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
+          <button class="l-eye" type="button" onclick="ltogglePass()" id="l_eyeBtn">👁️</button>
+        </div>
+      </div>
+      <div class="l-err" id="l_err">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+      <button class="l-btn" id="l_btn" onclick="lDoLogin()">
+        <span class="l-btext">🔓 เข้าสู่ระบบ</span>
+        <div class="l-spinner"></div>
+      </button>
+    </div>
+    <div class="l-footer">ระบบนี้สงวนสิทธิ์เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต<br><span>ศูนย์ 191 กองบังคับการตำรวจภูธรจังหวัดน่าน</span></div>
+  </div>
+</div>
+<!-- ===== FORM VIEW ===== -->
+<div class="view active" id="view-form">
+  <div class="form-header">
+    <div>
+      <div class="page-title">บันทึก<span>การโทรกลับ</span></div>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">ข้อมูลการโทรกลับผู้แจ้งเหตุ ของศูนย์ 191 ภ.จว.น่าน</div>
+    </div>
+    <div class="incident-id" id="incidentIdDisplay">เหตุ #—</div>
+  </div>
+
+  <div class="form-grid">
+    <!-- Header info -->
+    <div class="form-card full">
+      <div class="section-title"><span class="section-num">i</span>ข้อมูลทั่วไป</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>ประจำวันที่</label>
+          <input type="date" id="f_date">
+        </div>
+        <div class="form-field">
+          <label>โทรกลับเมื่อวันที่</label>
+          <input type="date" id="f_callbackDate">
+        </div>
+        <div class="form-field">
+          <label>ลำดับหมายเลขเหตุ</label>
+          <input type="number" id="f_incidentNum" min="1" placeholder="เช่น 1, 2, 3..." oninput="updateIncidentId()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>ชื่อผู้แจ้งเหตุ</label>
+          <input type="text" id="f_reporterName" placeholder="ชื่อ-นามสกุล">
+        </div>
+        <div class="form-field">
+          <label>เบอร์โทรศัพท์</label>
+          <input type="tel" id="f_phone" placeholder="0XX-XXX-XXXX" maxlength="15">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>ประเภทเหตุ</label>
+          <select id="f_incidentType">
+            <option value="">— เลือกประเภทเหตุ —</option>
+            <option>คดีอาญา / โจรกรรม</option>
+            <option>ทะเลาะวิวาท / ทำร้ายร่างกาย</option>
+            <option>อุบัติเหตุจราจร</option>
+            <option>เหตุฉุกเฉิน / เพลิงไหม้</option>
+            <option>เหตุรบกวนความสงบ</option>
+            <option>แจ้งเบาะแสยาเสพติด</option>
+            <option>ขอความช่วยเหลือทั่วไป</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-field" style="flex:2">
+          <label>รายละเอียดเหตุการณ์</label>
+          <input type="text" id="f_incidentDetail" placeholder="สถานที่ / รายละเอียดโดยย่อ">
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="form-card">
+      <div class="section-title"><span class="section-num">2</span>การรับโทรศัพท์ของผู้แจ้ง</div>
+      <div class="radio-group" id="sec2">
+        <label class="radio-item" onclick="selectRadio('sec2','2.1')">
+          <input type="radio" name="sec2" value="2.1">
+          <div class="radio-dot"></div>
+          <span>2.1 โทรติด/แต่ไม่รับสาย</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec2','2.2')">
+          <input type="radio" name="sec2" value="2.2">
+          <div class="radio-dot"></div>
+          <span>2.2 โทรติด/รับสายแต่ไม่สะดวก</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec2','2.3')">
+          <input type="radio" name="sec2" value="2.3">
+          <div class="radio-dot"></div>
+          <span>2.3 โทรติด/รับสาย/ตอบรับ-ร่วมมือ</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="form-card">
+      <div class="section-title"><span class="section-num">3</span>จนท.ศูนย์ 191 ภ.จว.น่าน ได้โทรกลับหรือยัง?</div>
+      <div class="radio-group" id="sec3">
+        <label class="radio-item" onclick="selectRadio('sec3','3.1')">
+          <input type="radio" name="sec3" value="3.1">
+          <div class="radio-dot"></div>
+          <span>3.1 โทรกลับเรียบร้อยแล้ว</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec3','3.2')">
+          <input type="radio" name="sec3" value="3.2">
+          <div class="radio-dot"></div>
+          <span>3.2 ไม่มีการโทรกลับ</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="form-card">
+      <div class="section-title"><span class="section-num">4</span>จนท.ศูนย์ 191 ภ.จว.น่าน เป็นอย่างไรบ้าง?</div>
+      <div class="radio-group" id="sec4">
+        <label class="radio-item" onclick="selectRadio('sec4','4.1')">
+          <input type="radio" name="sec4" value="4.1"><div class="radio-dot"></div><span>4.1 รับสายเร็ว</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec4','4.2')">
+          <input type="radio" name="sec4" value="4.2"><div class="radio-dot"></div><span>4.2 รับสายช้า</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec4','4.3')">
+          <input type="radio" name="sec4" value="4.3"><div class="radio-dot"></div><span>4.3 สอบถามละเอียด</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec4','4.4')">
+          <input type="radio" name="sec4" value="4.4"><div class="radio-dot"></div><span>4.4 สอบถามไม่ละเอียด</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec4','4.5')">
+          <input type="radio" name="sec4" value="4.5"><div class="radio-dot"></div><span>4.5 ใช้เวลาถาม น้อย/เร็ว</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 5 -->
+    <div class="form-card full">
+      <div class="section-title"><span class="section-num">5</span>ตำรวจสายตรวจท้องที่ ไปที่เกิดเหตุหรือไม่?</div>
+      <div class="radio-group" id="sec5">
+        <label class="radio-item" onclick="selectRadio('sec5','5.1')">
+          <input type="radio" name="sec5" value="5.1"><div class="radio-dot"></div><span>5.1 ไปถึงที่เกิดเหตุเร็ว</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec5','5.2.1')">
+          <input type="radio" name="sec5" value="5.2.1"><div class="radio-dot"></div><span>5.2 ไปถึงที่เกิดเหตุช้า — (1) ระยะทางใกล้</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec5','5.2.2')">
+          <input type="radio" name="sec5" value="5.2.2"><div class="radio-dot"></div><span>5.2 ไปถึงที่เกิดเหตุช้า — (2) ระยะทางไกล</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec5','5.2.3')">
+          <input type="radio" name="sec5" value="5.2.3"><div class="radio-dot"></div><span>5.2 ไปถึงที่เกิดเหตุช้า — (3) ว.13 สอบถามก่อนไป</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec5','5.2.4')">
+          <input type="radio" name="sec5" value="5.2.4"><div class="radio-dot"></div><span>5.2 ไปถึงที่เกิดเหตุช้า — (4) ว.13 แจ้งติดภารกิจอื่นอยู่ไปช้า</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec5','5.3.1')">
+          <input type="radio" name="sec5" value="5.3.1"><div class="radio-dot"></div><span>5.3 ไม่ไป — (1) ว.13 ติดต่อสอบถามประชาสัมพันธ์กับผู้แจ้ง</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec5','5.3.2')">
+          <input type="radio" name="sec5" value="5.3.2"><div class="radio-dot"></div><span>5.3 ไม่ไป — (2) ไม่ ว.13 ไม่สอบถามและไม่ไปที่เกิดเหตุ</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 6 -->
+    <div class="form-card">
+      <div class="section-title"><span class="section-num">6</span>เหตุที่แจ้ง เกิดขึ้นอีกหรือไม่?</div>
+      <div class="radio-group" id="sec6">
+        <label class="radio-item" onclick="selectRadio('sec6','6.1')">
+          <input type="radio" name="sec6" value="6.1"><div class="radio-dot"></div><span>6.1 มี</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec6','6.2')">
+          <input type="radio" name="sec6" value="6.2"><div class="radio-dot"></div><span>6.2 ไม่มี</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 7 -->
+    <div class="form-card">
+      <div class="section-title"><span class="section-num">7</span>ความพึงพอใจในการแจ้งเหตุครั้งนี้ (ภาพรวม)</div>
+      <div class="radio-group" id="sec7">
+        <label class="radio-item" onclick="selectRadio('sec7','7.1')">
+          <input type="radio" name="sec7" value="7.1"><div class="radio-dot"></div><span>7.1 พอใจ</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec7','7.2')">
+          <input type="radio" name="sec7" value="7.2"><div class="radio-dot"></div><span>7.2 ดี</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec7','7.3')">
+          <input type="radio" name="sec7" value="7.3"><div class="radio-dot"></div><span>7.3 ดีมาก</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec7','7.4')">
+          <input type="radio" name="sec7" value="7.4"><div class="radio-dot"></div><span>7.4 ดีเยี่ยม</span>
+        </label>
+        <label class="radio-item" onclick="selectRadio('sec7','7.5')">
+          <input type="radio" name="sec7" value="7.5"><div class="radio-dot"></div><span>7.5 ไม่พึงพอใจ</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Remarks -->
+    <div class="form-card full">
+      <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,var(--accent2),#1976d2);">✎</span>หมายเหตุ / ข้อเสนอแนะ</div>
+      <div class="form-field">
+        <textarea id="f_remark" placeholder="ระบุเหตุผลหรือคำแนะนำเพิ่มเติม (กรณีไม่พึงพอใจ หรือข้อสังเกต)..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-row">
+    <button class="btn btn-ghost" onclick="resetForm()">ล้างข้อมูล</button>
+    <button class="btn btn-primary" onclick="submitForm()">💾 บันทึกข้อมูล</button>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD VIEW ===== -->
+<div class="view" id="view-dashboard">
+  <div class="print-title">รายงานสรุปผลการโทรกลับผู้แจ้งเหตุ — ศูนย์ 191 ภ.จว.น่าน</div>
+  <div class="print-date" id="print-date"></div>
+
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">📊 แดชบอร์ดสรุปผล</div>
+      <div class="dash-sub" id="dash-period-label">ข้อมูลการโทรกลับผู้แจ้งเหตุ — ศูนย์ 191 ภ.จว.น่าน</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:14px">⬇️ CSV</button>
+      <button class="btn btn-print" onclick="printDashboard()" style="font-size:14px">🖨️ พิมพ์</button>
+    </div>
+  </div>
+
+  <!-- Period filter tabs -->
+  <div class="period-tabs">
+    <div class="period-tab-group">
+      <button class="ptab active" onclick="setPeriod('day')" id="ptab-day">รายวัน</button>
+      <button class="ptab" onclick="setPeriod('month')" id="ptab-month">รายเดือน</button>
+      <button class="ptab" onclick="setPeriod('year')" id="ptab-year">รายปี</button>
+      <button class="ptab" onclick="setPeriod('all')" id="ptab-all">ทั้งหมด</button>
+    </div>
+    <div class="period-nav" id="period-nav">
+      <button class="pnav-btn" onclick="shiftPeriod(-1)">‹</button>
+      <span class="pnav-label" id="pnav-label">—</span>
+      <button class="pnav-btn" onclick="shiftPeriod(1)">›</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card blue">
+      <div class="stat-label">รายการทั้งหมด</div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-trend">เหตุที่บันทึก</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">โทรกลับแล้ว</div>
+      <div class="stat-value" id="stat-called">0</div>
+      <div class="stat-trend">ข้อ 3.1</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">พึงพอใจ</div>
+      <div class="stat-value" id="stat-satisfied">0%</div>
+      <div class="stat-trend">ระดับ ดี ขึ้นไป</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">ไม่พึงพอใจ</div>
+      <div class="stat-value" id="stat-unsatisfied">0</div>
+      <div class="stat-trend">ต้องปรับปรุง</div>
+    </div>
+  </div>
+
+  <!-- Trend chart (daily/monthly bars) -->
+  <div class="chart-card" id="trend-card">
+    <div class="chart-title" id="trend-title">📈 แนวโน้มจำนวนเหตุ</div>
+    <div id="chart-trend" style="display:flex;align-items:flex-end;gap:6px;height:100px;padding-top:8px"></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">📞 การรับโทรศัพท์ผู้แจ้ง (ข้อ 2)</div>
+      <div class="bar-chart" id="chart-sec2"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">👮 การปฏิบัติของจนท.ศูนย์ (ข้อ 4)</div>
+      <div class="bar-chart" id="chart-sec4"></div>
+    </div>
+    <div class="chart-card full">
+      <div class="chart-title">🚓 การไปที่เกิดเหตุของสายตรวจ (ข้อ 5)</div>
+      <div class="bar-chart" id="chart-sec5"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">⭐ ความพึงพอใจโดยรวม (ข้อ 7)</div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120" id="donut-svg">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="16"/>
+        </svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔁 เหตุเกิดซ้ำหรือไม่ (ข้อ 6)</div>
+      <div class="bar-chart" id="chart-sec6"></div>
+    </div>
+    <div class="chart-card full">
+      <div class="chart-title">🗂️ ประเภทเหตุการณ์ที่แจ้ง</div>
+      <div class="bar-chart" id="chart-incidentType"></div>
+    </div>
+  </div>
+
+  <!-- Records table -->
+  <div class="chart-card">
+    <div class="chart-title">📋 รายการในช่วงเวลานี้</div>
+    <div id="records-wrap"></div>
+  </div>
+</div>
+</main>
+
+<div class="toast" id="toast">✅ บันทึกข้อมูลสำเร็จ!</div>
+
+<script>
+function doLogout() {
+  localStorage.removeItem('cb191_auth');
+  localStorage.removeItem('cb191_user');
+  localStorage.removeItem('cb191_role');
+  localStorage.removeItem('cb191_expire');
+  location.reload();
+}
+
+// ===== CONFIG =====
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbytDmhhTTsTSQqLa_NXzJC6qiSL-fF8X0p1x-tqFs_IsyJnGW7wN6ObbfzGIVO5aDz-9Q/exec';
+
+// ===== DATA STORE =====
+let records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
+let formState = {};
+
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    now.toLocaleDateString('th-TH', {day:'2-digit',month:'short',year:'numeric'}) + ' ' +
+    now.toLocaleTimeString('th-TH', {hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+
+
+// Set today's date default
+document.getElementById('f_date').value = new Date().toISOString().split('T')[0];
+document.getElementById('f_callbackDate').value = new Date().toISOString().split('T')[0];
+
+function updateIncidentId() {
+  const n = document.getElementById('f_incidentNum').value;
+  document.getElementById('incidentIdDisplay').textContent = n ? `เหตุ #${n}` : 'เหตุ #—';
+}
+
+// ===== VIEW SWITCH =====
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  event.target.classList.add('active');
+  if (v === 'dashboard') renderDashboard();
+}
+
+// ===== RADIO =====
+function selectRadio(section, value) {
+  formState[section] = value;
+  document.querySelectorAll(`#${section} .radio-item`).forEach(el => {
+    el.classList.remove('selected');
+  });
+  event.currentTarget.classList.add('selected');
+}
+
+// ===== FORM SUBMIT =====
+async function submitForm() {
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true;
+  btn.textContent = '⏳ กำลังบันทึก...';
+
+  const record = {
+    id: Date.now(),
+    date: document.getElementById('f_date').value,
+    callbackDate: document.getElementById('f_callbackDate').value,
+    incidentNum: document.getElementById('f_incidentNum').value,
+    reporterName: document.getElementById('f_reporterName').value,
+    phone: document.getElementById('f_phone').value,
+    incidentType: document.getElementById('f_incidentType').value,
+    incidentDetail: document.getElementById('f_incidentDetail').value,
+    sec2: formState['sec2'] || null,
+    sec3: formState['sec3'] || null,
+    sec4: formState['sec4'] || null,
+    sec5: formState['sec5'] || null,
+    sec6: formState['sec6'] || null,
+    sec7: formState['sec7'] || null,
+    remark: document.getElementById('f_remark').value,
+  };
+
+  // Save locally
+  records.unshift(record);
+  localStorage.setItem('cb191_records', JSON.stringify(records));
+
+  // Send to Google Sheets
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+    showToast('✅ บันทึกลง Google Sheet สำเร็จ!', 'success');
+  } catch (err) {
+    showToast('⚠️ บันทึกเฉพาะในเครื่อง (ไม่สามารถเชื่อมต่อ Sheet)', 'warn');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '💾 บันทึกข้อมูล';
+  resetForm();
+}
+
+function resetForm() {
+  formState = {};
+  document.getElementById('f_incidentNum').value = '';
+  document.getElementById('f_reporterName').value = '';
+  document.getElementById('f_phone').value = '';
+  document.getElementById('f_incidentType').value = '';
+  document.getElementById('f_incidentDetail').value = '';
+  document.getElementById('f_remark').value = '';
+  document.getElementById('incidentIdDisplay').textContent = 'เหตุ #—';
+  document.querySelectorAll('.radio-item').forEach(el => el.classList.remove('selected'));
+}
+
+function showToast(msg = '✅ บันทึกข้อมูลสำเร็จ!', type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'warn' ? 'var(--warn)' : 'var(--success)';
+  t.style.color = 'var(--navy)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== EXPORT & PRINT =====
+function exportCSV() {
+  if (records.length === 0) { alert('ไม่มีข้อมูลที่จะดาวน์โหลด'); return; }
+  const headers = ['ID','วันที่บันทึก','วันที่โทรกลับ','ลำดับเหตุ','ชื่อผู้แจ้ง','เบอร์โทร','ประเภทเหตุ','รายละเอียดเหตุ','2.รับโทรศัพท์','3.โทรกลับ','4.จนท.ศูนย์','5.สายตรวจ','6.เหตุเกิดซ้ำ','7.ความพึงพอใจ','หมายเหตุ'];
+  const rows = records.map(r => [
+    r.id, r.date, r.callbackDate, r.incidentNum,
+    r.reporterName, r.phone, r.incidentType, r.incidentDetail,
+    r.sec2, r.sec3, r.sec4, r.sec5, r.sec6, r.sec7, r.remark
+  ].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = '﻿' + [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = `รายงานโทรกลับ_191_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+function printDashboard() {
+  document.getElementById('print-date').textContent = 'พิมพ์เมื่อ: ' + new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
+  window.print();
+}
+
+// ===== PERIOD STATE =====
+let currentPeriod = 'day';
+let periodOffset = 0; // 0 = current, -1 = previous, etc.
+
+function setPeriod(p) {
+  currentPeriod = p;
+  periodOffset = 0;
+  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+  document.getElementById('ptab-' + p).classList.add('active');
+  const nav = document.getElementById('period-nav');
+  nav.classList.toggle('hidden', p === 'all');
+  renderDashboard();
+}
+
+function shiftPeriod(dir) {
+  periodOffset += dir;
+  renderDashboard();
+}
+
+function getFilteredRecords() {
+  if (currentPeriod === 'all') return { filtered: records, label: 'ทั้งหมด' };
+  const now = new Date();
+  let label = '';
+
+  return records.reduce((acc, r) => {
+    const d = new Date(r.callbackDate || r.date);
+    if (isNaN(d)) return acc;
+    let match = false;
+
+    if (currentPeriod === 'day') {
+      const target = new Date(now);
+      target.setDate(target.getDate() + periodOffset);
+      match = d.toDateString() === target.toDateString();
+      acc.label = target.toLocaleDateString('th-TH', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    } else if (currentPeriod === 'month') {
+      const tYear = now.getFullYear(), tMonth = now.getMonth() + periodOffset;
+      const tDate = new Date(tYear, tMonth, 1);
+      match = d.getFullYear() === tDate.getFullYear() && d.getMonth() === tDate.getMonth();
+      acc.label = tDate.toLocaleDateString('th-TH', {month:'long', year:'numeric'});
+    } else if (currentPeriod === 'year') {
+      const tYear = now.getFullYear() + periodOffset;
+      match = d.getFullYear() === tYear;
+      acc.label = 'ปี พ.ศ. ' + (tYear + 543);
+    }
+    if (match) acc.filtered.push(r);
+    return acc;
+  }, { filtered: [], label: '' });
+}
+
+function renderTrendChart(filtered) {
+  const el = document.getElementById('chart-trend');
+  const title = document.getElementById('trend-title');
+
+  let buckets = [];
+
+  if (currentPeriod === 'day') {
+    // hours 0-23
+    title.textContent = '📈 จำนวนเหตุแยกตามชั่วโมง';
+    const hrs = Array(24).fill(0);
+    filtered.forEach(r => {
+      const d = new Date(r.id);
+      if (!isNaN(d)) hrs[d.getHours()]++;
+    });
+    buckets = hrs.map((v, i) => ({ label: i + 'น.', val: v }));
+  } else if (currentPeriod === 'month') {
+    title.textContent = '📈 จำนวนเหตุแยกตามวันในเดือน';
+    const now = new Date();
+    const tDate = new Date(now.getFullYear(), now.getMonth() + periodOffset, 1);
+    const days = new Date(tDate.getFullYear(), tDate.getMonth() + 1, 0).getDate();
+    const arr = Array(days).fill(0);
+    filtered.forEach(r => { const d = new Date(r.callbackDate || r.date); if(!isNaN(d)) arr[d.getDate()-1]++; });
+    buckets = arr.map((v, i) => ({ label: (i+1)+'', val: v }));
+  } else if (currentPeriod === 'year') {
+    title.textContent = '📈 จำนวนเหตุแยกตามเดือน';
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const arr = Array(12).fill(0);
+    filtered.forEach(r => { const d = new Date(r.callbackDate || r.date); if(!isNaN(d)) arr[d.getMonth()]++; });
+    buckets = arr.map((v, i) => ({ label: months[i], val: v }));
+  } else {
+    title.textContent = '📈 จำนวนเหตุแยกตามปี';
+    const yearMap = {};
+    records.forEach(r => {
+      const d = new Date(r.callbackDate || r.date);
+      if (!isNaN(d)) { const y = d.getFullYear() + 543; yearMap[y] = (yearMap[y]||0)+1; }
+    });
+    buckets = Object.entries(yearMap).sort().map(([y,v]) => ({ label: y, val: v }));
+  }
+
+  const maxVal = Math.max(...buckets.map(b => b.val), 1);
+  document.getElementById('trend-card').style.display = buckets.length ? '' : 'none';
+  el.innerHTML = buckets.map(b => `
+    <div class="trend-bar-wrap">
+      <div class="trend-bar-val">${b.val > 0 ? b.val : ''}</div>
+      <div class="trend-bar-outer">
+        <div class="trend-bar" style="height:${Math.round(b.val/maxVal*80)}px"></div>
+      </div>
+      <div class="trend-bar-label">${b.label}</div>
+    </div>`).join('');
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const { filtered, label } = getFilteredRecords();
+
+  // Update nav label
+  document.getElementById('pnav-label').textContent = label || 'ทั้งหมด';
+  document.getElementById('dash-period-label').textContent =
+    currentPeriod === 'all' ? 'ข้อมูลการโทรกลับผู้แจ้งเหตุ — ทั้งหมด' : 'ช่วงเวลา: ' + label;
+
+  const n = filtered.length;
+  document.getElementById('stat-total').textContent = n;
+
+  const called = filtered.filter(r => r.sec3 === '3.1').length;
+  document.getElementById('stat-called').textContent = called;
+
+  const satisfied = filtered.filter(r => ['7.2','7.3','7.4'].includes(r.sec7)).length;
+  document.getElementById('stat-satisfied').textContent = n > 0 ? Math.round(satisfied/n*100) + '%' : '0%';
+
+  const unsatisfied = filtered.filter(r => r.sec7 === '7.5').length;
+  document.getElementById('stat-unsatisfied').textContent = unsatisfied;
+
+  // Trend
+  renderTrendChart(filtered);
+
+  // Sec 2
+  renderBarChart('chart-sec2', [
+    { label: 'โทรติด/แต่ไม่รับสาย', val: count(filtered,'sec2','2.1'), color: '#ff4d6d' },
+    { label: 'โทรติด/รับสายแต่ไม่สะดวก', val: count(filtered,'sec2','2.2'), color: '#ffb347' },
+    { label: 'โทรติด/รับสาย/ร่วมมือ', val: count(filtered,'sec2','2.3'), color: '#43d982' },
+  ]);
+
+  // Sec 4
+  renderBarChart('chart-sec4', [
+    { label: 'รับสายเร็ว', val: count(filtered,'sec4','4.1'), color: '#43d982' },
+    { label: 'รับสายช้า', val: count(filtered,'sec4','4.2'), color: '#ff4d6d' },
+    { label: 'สอบถามละเอียด', val: count(filtered,'sec4','4.3'), color: '#4ad6e8' },
+    { label: 'สอบถามไม่ละเอียด', val: count(filtered,'sec4','4.4'), color: '#ffb347' },
+    { label: 'ใช้เวลาน้อย/เร็ว', val: count(filtered,'sec4','4.5'), color: '#a78bfa' },
+  ]);
+
+  // Sec 5
+  renderBarChart('chart-sec5', [
+    { label: 'ไปถึงเร็ว', val: count(filtered,'sec5','5.1'), color: '#43d982' },
+    { label: 'ไปช้า — ระยะใกล้', val: count(filtered,'sec5','5.2.1'), color: '#ffb347' },
+    { label: 'ไปช้า — ระยะไกล', val: count(filtered,'sec5','5.2.2'), color: '#ff9800' },
+    { label: 'ไปช้า — ว.13 สอบถามก่อน', val: count(filtered,'sec5','5.2.3'), color: '#ff7043' },
+    { label: 'ไปช้า — ติดภารกิจ', val: count(filtered,'sec5','5.2.4'), color: '#ef5350' },
+    { label: 'ไม่ไป — ติดต่อสอบถาม', val: count(filtered,'sec5','5.3.1'), color: '#4ad6e8' },
+    { label: 'ไม่ไป — ไม่สอบถาม', val: count(filtered,'sec5','5.3.2'), color: '#ff4d6d' },
+  ]);
+
+  // Sec 6
+  renderBarChart('chart-sec6', [
+    { label: 'เกิดซ้ำ — มี', val: count(filtered,'sec6','6.1'), color: '#ff4d6d' },
+    { label: 'เกิดซ้ำ — ไม่มี', val: count(filtered,'sec6','6.2'), color: '#43d982' },
+  ]);
+
+  // Donut sec7
+  renderDonut(filtered);
+
+  // Incident types
+  const typeColors = ['#4ad6e8','#43d982','#e8b14a','#a78bfa','#ff9800','#ff4d6d','#00bfa5','#8899b0'];
+  const typeCounts = {};
+  filtered.forEach(r => { if(r.incidentType) typeCounts[r.incidentType] = (typeCounts[r.incidentType]||0)+1; });
+  const typeItems = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([label,val],i) => ({
+    label, val, color: typeColors[i % typeColors.length]
+  }));
+  renderBarChart('chart-incidentType', typeItems.length ? typeItems : []);
+
+  // Table
+  renderTable(filtered);
+}
+
+function count(arr, field, val) {
+  return arr.filter(r => r[field] === val).length;
+}
+
+function renderBarChart(id, items) {
+  const total = items.reduce((s, i) => s + i.val, 0);
+  const el = document.getElementById(id);
+  if (!items.some(i => i.val > 0)) {
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-dim);font-size:13px;">ยังไม่มีข้อมูล</div>';
+    return;
+  }
+  el.innerHTML = items.map(item => {
+    const pct = total > 0 ? Math.round(item.val / total * 100) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${item.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${item.color};"></div></div>
+      <div class="bar-val">${item.val}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDonut(filtered) {
+  filtered = filtered || records;
+  const items = [
+    { label: 'พอใจ', key: '7.1', color: '#4ad6e8' },
+    { label: 'ดี', key: '7.2', color: '#43d982' },
+    { label: 'ดีมาก', key: '7.3', color: '#e8b14a' },
+    { label: 'ดีเยี่ยม', key: '7.4', color: '#a78bfa' },
+    { label: 'ไม่พึงพอใจ', key: '7.5', color: '#ff4d6d' },
+  ];
+  const vals = items.map(i => ({ ...i, val: count(filtered,'sec7',i.key) }));
+  const total = vals.reduce((s,i) => s + i.val, 0);
+  const svg = document.getElementById('donut-svg');
+  const r = 46, cx = 60, cy = 60;
+  const circ = 2 * Math.PI * r;
+
+  if (total === 0) {
+    svg.innerHTML = `<circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="16"/>
+      <text x="60" y="65" text-anchor="middle" fill="var(--text-dim)" font-size="10" font-family="Sarabun">ไม่มีข้อมูล</text>`;
+    document.getElementById('donut-legend').innerHTML = '';
+    return;
+  }
+
+  let offset = 0;
+  const circles = vals.map(item => {
+    const pct = item.val / total;
+    const dash = pct * circ;
+    const gap = circ - dash;
+    const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${item.color}" stroke-width="16"
+      stroke-dasharray="${dash} ${gap}"
+      stroke-dashoffset="${-(offset * circ - circ/4)}"
+      style="transition:stroke-dasharray 0.6s"/>`;
+    offset += pct;
+    return circle;
+  }).join('');
+  svg.innerHTML = `<circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="16"/>${circles}`;
+
+  document.getElementById('donut-legend').innerHTML = vals.map(item => {
+    const pct = total > 0 ? Math.round(item.val/total*100) : 0;
+    return `<div class="legend-item">
+      <div class="legend-dot" style="background:${item.color}"></div>
+      <span style="font-size:13px">${item.label}</span>
+      <span class="legend-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(filtered) {
+  filtered = filtered || records;
+  const wrap = document.getElementById('records-wrap');
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">ยังไม่มีข้อมูลที่บันทึก</div></div>`;
+    return;
+  }
+  const satLabel = {
+    '7.1': '<span class="badge badge-blue">พอใจ</span>',
+    '7.2': '<span class="badge badge-green">ดี</span>',
+    '7.3': '<span class="badge badge-green">ดีมาก</span>',
+    '7.4': '<span class="badge badge-green">ดีเยี่ยม</span>',
+    '7.5': '<span class="badge badge-red">ไม่พึงพอใจ</span>',
+  };
+  const callLabel = {
+    '3.1': '<span class="badge badge-green">โทรกลับแล้ว</span>',
+    '3.2': '<span class="badge badge-red">ไม่โทรกลับ</span>',
+  };
+  const rows = filtered.slice(0,20).map(r => `
+    <tr>
+      <td style="font-family:'IBM Plex Mono',monospace;color:var(--accent2)">#${r.incidentNum||'—'}</td>
+      <td>${r.callbackDate||'—'}</td>
+      <td>
+        <div>${r.incidentType||'—'}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.incidentDetail||''}</div>
+      </td>
+      <td>${callLabel[r.sec3]||'—'}</td>
+      <td>${satLabel[r.sec7]||'—'}</td>
+    </tr>`).join('');
+  wrap.innerHTML = `<table class="records-table">
+    <thead><tr>
+      <th>เหตุ</th><th>วันที่โทรกลับ</th><th>ประเภท / รายละเอียด</th><th>การโทรกลับ</th><th>ความพึงพอใจ</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// Init dashboard
+setPeriod('day');
+
+// ===== LOGIN SYSTEM =====
+const ACCOUNTS = [
+  { username: 'admin',    password: 'admin191',  role: 'admin' },
+  { username: 'officer1', password: 'officer1',  role: 'user'  },
+  { username: 'officer2', password: 'officer2',  role: 'user'  },
+];
+
+function lCheckSession() {
+  const auth = localStorage.getItem('cb191_auth');
+  const expire = localStorage.getItem('cb191_expire');
+  if (auth === 'true' && expire && Date.now() < parseInt(expire)) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    const user = localStorage.getItem('cb191_user') || '';
+    const role = localStorage.getItem('cb191_role') || '';
+    document.getElementById('userChip').textContent = '👤 ' + user + (role === 'admin' ? ' (Admin)' : '');
+  }
+}
+lCheckSession();
+
+function ltogglePass() {
+  const inp = document.getElementById('l_pass');
+  const btn = document.getElementById('l_eyeBtn');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+function lDoLogin() {
+  const username = document.getElementById('l_user').value.trim();
+  const password = document.getElementById('l_pass').value;
+  const btn = document.getElementById('l_btn');
+  const err = document.getElementById('l_err');
+  if (!username || !password) { lShowErr('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'); return; }
+  btn.classList.add('loading'); btn.disabled = true; err.classList.remove('show');
+  setTimeout(() => {
+    const found = ACCOUNTS.find(a => a.username === username && a.password === password);
+    if (found) {
+      const expire = Date.now() + 8 * 60 * 60 * 1000; // 8 hours
+      localStorage.setItem('cb191_auth', 'true');
+      localStorage.setItem('cb191_user', found.username);
+      localStorage.setItem('cb191_role', found.role);
+      localStorage.setItem('cb191_expire', expire);
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('userChip').textContent = '👤 ' + found.username + (found.role === 'admin' ? ' (Admin)' : '');
+    } else {
+      btn.classList.remove('loading'); btn.disabled = false;
+      lShowErr('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    }
+  }, 600);
+}
+
+function lShowErr(msg) {
+  const err = document.getElementById('l_err');
+  err.textContent = '❌ ' + msg;
+  err.classList.remove('show');
+  void err.offsetWidth;
+  err.classList.add('show');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') lDoLogin();
+});
+
+</script>
+</body>
+</html>
